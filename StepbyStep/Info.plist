@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <true/>
+        <key>UISceneConfigurations</key>
+        <dict/>
+    </dict>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>garanti</string>
+        <string>garantibbva</string>
+        <string>garanticep</string>
+        <string>com.garantibbva.mobile</string>
+        <string>akbank</string>
+        <string>iscep</string>
+        <string>isbank</string>
+        <string>ykb</string>
+        <string>yapikredi</string>
+        <string>ziraat</string>
+        <string>ziraatmobile</string>
+        <string>vakifbank</string>
+        <string>halkbank</string>
+        <string>finansbank</string>
+        <string>qnbfinansbank</string>
+        <string>enpara</string>
+        <string>denizbank</string>
+        <string>mobildeniz</string>
+        <string>papara</string>
+        <string>binance</string>
+        <string>binancetr</string>
+        <string>btcurk</string>
+        <string>paribu</string>
+        <string>midas</string>
+    </array>
+</dict>
+</plist>
