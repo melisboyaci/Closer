@@ -27,8 +27,8 @@ Developed with SwiftUI, this application bridges financial apps with its user-fr
 
 ## 📸 Screenshots
 
-<img width="1320" height="2868" alt="Simulator Screenshot - iPhone 17 Pro Max - 2026-01-29 at 17 27 15" src="[https://github.com/user-attachments/assets/16b0acec-787d-4f62-93cc-309089b604c5](https://github.com/user-attachments/assets/16b0acec-787d-4f62-93cc-309089b604c5)" />
-<img width="1320" height="2868" alt="image" src="[https://github.com/user-attachments/assets/e2e89efe-7ca2-421e-a8d2-050b352d51f3](https://github.com/user-attachments/assets/e2e89efe-7ca2-421e-a8d2-050b352d51f3)" />
+<img width="1320" height="2868" alt="Simulator Screenshot - iPhone 17 Pro Max - 2026-01-29 at 17 27 15" src="https://github.com/user-attachments/assets/16b0acec-787d-4f62-93cc-309089b604c5" />
+<img width="1320" height="2868" alt="image" src="https://github.com/user-attachments/assets/e2e89efe-7ca2-421e-a8d2-050b352d51f3" />
 
 ## 👩‍💻 Developer
 
