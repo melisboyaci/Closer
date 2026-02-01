@@ -14,6 +14,9 @@ struct Goal: Identifiable, Codable, AppEntity {
     var targetAmount: Double
     var colorTheme: String
     
+    // Yardımcı: Hedef tamamlandı mı?
+    var isCompleted: Bool { currentAmount >= targetAmount }
+    
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Hedef"
     static var defaultQuery = GoalQuery()
     
@@ -25,7 +28,7 @@ struct Goal: Identifiable, Codable, AppEntity {
     static let placeholder2 = Goal(id: UUID(), title: "Tatil", icon: "🏖️", currentAmount: 1200, targetAmount: 10000, colorTheme: "Turuncu")
 }
 
-// --- 3. VERİ ÇEKME ---
+// --- 3. VERİ ÇEKME (ÖNCELİKLENDİRME BURADA YAPILDI) ---
 struct GoalQuery: EntityQuery {
     func entities(for identifiers: [UUID]) async throws -> [Goal] {
         let allGoals = GoalDataProvider.loadGoals()
@@ -41,9 +44,18 @@ struct GoalDataProvider {
               let data = defaults.data(forKey: "goalsData"),
               let decoded = try? JSONDecoder().decode([GoalData].self, from: data) else { return [] }
         
-        return decoded.map {
+        // 1. Düz veriyi modele çevir
+        let allGoals = decoded.map {
             Goal(id: $0.id, title: $0.title, icon: $0.icon, currentAmount: $0.currentAmount, targetAmount: $0.targetAmount, colorTheme: $0.colorTheme)
         }
+        
+        // 2. ÖNCELİKLENDİRME MANTIĞI:
+        // Devam edenleri (Bitmemiş) başa al, Tamamlananları sona at.
+        let activeGoals = allGoals.filter { !$0.isCompleted }
+        let completedGoals = allGoals.filter { $0.isCompleted }
+        
+        // 3. Birleştirip döndür
+        return activeGoals + completedGoals
     }
 }
 
@@ -66,9 +78,15 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
+        // loadGoals() artık sıralı geliyor
         let allGoals = GoalDataProvider.loadGoals()
+        
+        // Kullanıcı elle seçtiyse onu al, seçmediyse sıradaki İLK (yani en önemli) hedefi al
         let selected = configuration.selectedGoal ?? allGoals.first ?? Goal.placeholder
+        
+        // İlk 2 hedefi al (Sıralama yapıldığı için bunlar en önemli 2 hedef)
         let topTwo = Array(allGoals.prefix(2))
+        
         return SimpleEntry(date: Date(), selectedGoal: selected, topGoals: topTwo.isEmpty ? [Goal.placeholder, Goal.placeholder2] : topTwo)
     }
 
@@ -76,7 +94,10 @@ struct Provider: AppIntentTimelineProvider {
         let allGoals = GoalDataProvider.loadGoals()
         let selected = configuration.selectedGoal ?? allGoals.first
         let topTwoGoals = Array(allGoals.prefix(2))
+        
         let entry = SimpleEntry(date: Date(), selectedGoal: selected, topGoals: topTwoGoals)
+        
+        // 15 dakikada bir yenile
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
@@ -88,7 +109,7 @@ struct SimpleEntry: TimelineEntry {
     let topGoals: [Goal]
 }
 
-// --- 6. TASARIM ---
+// --- 6. TASARIM (HİÇ DOKUNULMADI) ---
 struct CloserWidgetEntryView : View {
     var entry: Provider.Entry
     @Environment(\.widgetFamily) var family
@@ -113,21 +134,19 @@ struct CloserWidgetEntryView : View {
     }
 }
 
-// --- YENİ KÜÇÜK WIDGET (Halkasız, Büyük Yazı) ---
 struct SmallCleanWidget: View {
     let goal: Goal
     var themeInfo: ThemeInfo { getThemeInfo(goal.colorTheme) }
     var progress: Double { goal.targetAmount > 0 ? min(goal.currentAmount / goal.targetAmount, 1.0) : 0 }
-    let darkTextColor = Color.black.opacity(0.85) // Biraz daha koyu yaptım
+    let darkTextColor = Color.black.opacity(0.85)
     
     var body: some View {
         ZStack {
             themeInfo.backgroundGradient
             
-            VStack(spacing: 6) { // Spacing biraz azaldı
+            VStack(spacing: 6) {
                 Spacer()
                 
-                // İlerleme Halkası
                 ZStack {
                     Circle().stroke(Color.black.opacity(0.05), lineWidth: 11)
                     
@@ -140,19 +159,18 @@ struct SmallCleanWidget: View {
                         .rotationEffect(.degrees(-90))
                         .shadow(color: themeInfo.accentColor.opacity(0.25), radius: 4, x: 0, y: 0)
                     
-                    Text(goal.icon).font(.system(size: 38)) // İkon Büyüdü (34 -> 38)
+                    Text(goal.icon).font(.system(size: 38))
                 }
-                .frame(width: 88, height: 88) // Halka alanı büyüdü
+                .frame(width: 88, height: 88)
                 
-                // Bilgiler
                 VStack(spacing: 3) {
                     Text(goal.title)
-                        .font(.system(size: 16, weight: .bold, design: .rounded)) // Yazı Büyüdü (15 -> 16)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .foregroundColor(darkTextColor)
                     
                     Text("%\(Int(progress * 100))")
-                        .font(.system(size: 15, weight: .heavy, design: .monospaced)) // Yazı Büyüdü (13 -> 15)
+                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
                         .foregroundColor(themeInfo.accentColor)
                 }
                 
@@ -163,7 +181,6 @@ struct SmallCleanWidget: View {
     }
 }
 
-// --- YENİ ORTA WIDGET (Halkasız, Büyük Yazı, İkili) ---
 struct MediumCleanWidget: View {
     let goals: [Goal]
     
@@ -205,21 +222,20 @@ struct GoalSummaryCell: View {
     let darkTextColor = Color.black.opacity(0.85)
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) { // Spacing düzenlendi
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(goal.icon).font(.system(size: 26)) // İkon büyüdü
+                Text(goal.icon).font(.system(size: 26))
                 Spacer()
                 Text("%\(Int(progress * 100))")
-                    .font(.system(size: 14, weight: .bold, design: .monospaced)) // Yazı büyüdü (12 -> 14)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
                     .foregroundColor(themeInfo.accentColor)
             }
             
             Text(goal.title)
-                .font(.system(size: 16, weight: .bold, design: .rounded)) // Başlık büyüdü (14 -> 16)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(darkTextColor)
                 .lineLimit(1)
             
-            // Bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.black.opacity(0.06))
@@ -228,10 +244,10 @@ struct GoalSummaryCell: View {
                         .frame(width: geo.size.width * progress)
                 }
             }
-            .frame(height: 10) // Bar kalınlaştı (8 -> 10)
+            .frame(height: 10)
             
-            Text("\(formatMoney(goal.currentAmount))₺") // Sadece mevcut parayı göster (Daha temiz)
-                .font(.system(size: 12, weight: .semibold)) // Yazı büyüdü (10 -> 12)
+            Text("\(formatMoney(goal.currentAmount))₺")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(Color.black.opacity(0.6))
                 .lineLimit(1)
         }
@@ -241,7 +257,6 @@ struct GoalSummaryCell: View {
     }
 }
 
-// --- YARDIMCILAR ---
 struct EmptyStateView: View {
     let message: String
     var body: some View {
@@ -264,7 +279,6 @@ func getThemeInfo(_ name: String) -> ThemeInfo {
     default:        main = Color(uiColor: .systemBlue); sec = Color(uiColor: .systemTeal)
     }
     
-    // Daha temiz, dokusuz arka plan
     let bgGrad = LinearGradient(colors: [main.opacity(0.12), sec.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
     let progGrad = LinearGradient(colors: [main, sec], startPoint: .leading, endPoint: .trailing)
     return ThemeInfo(accentColor: main, backgroundGradient: bgGrad, progressGradient: progGrad)

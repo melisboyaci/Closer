@@ -1,6 +1,64 @@
 import SwiftUI
+import UserNotifications
 
-// --- 1. PASTEL RENK PALETİ ---
+// --- 1. BİLDİRİM YÖNETİCİSİ (YENİ) ---
+class NotificationManager {
+    static let shared = NotificationManager()
+    
+    // İzin İste
+    func requestAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if let error = error {
+                print("Bildirim hatası: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    // Bildirim Planla (10, 5, 3, 0 gün kala)
+    func scheduleNotifications(for goal: Goal) {
+        cancelNotifications(for: goal) // Eskileri temizle
+        
+        let triggers = [10, 5, 3, 0, -1] // -1: Süre doldu ertesi gün
+        
+        for daysLeft in triggers {
+            let content = UNMutableNotificationContent()
+            content.sound = .default
+            
+            guard let triggerDate = Calendar.current.date(byAdding: .day, value: -daysLeft, to: goal.targetDate) else { continue }
+            if triggerDate < Date() { continue } // Geçmiş tarihse atla
+            
+            if daysLeft > 0 {
+                content.title = "Hedefine Yaklaşıyorsun! 🎯"
+                content.body = "\(goal.title) hedefin için son \(daysLeft) gün! Birikim durumunu kontrol et."
+            } else if daysLeft == 0 {
+                content.title = "Büyük Gün Geldi! 🎉"
+                content.body = "Bugün \(goal.title) hedefin için son gün! Hedefine ulaştın mı?"
+            } else {
+                content.title = "Süre Doldu ⏳"
+                content.body = "\(goal.title) hedefinin tarihi geçti. Son durumu güncellemek ister misin?"
+            }
+            
+            var dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: triggerDate)
+            dateComponents.hour = 9; dateComponents.minute = 30 // Sabah 09:30
+            
+            // Test için: 10 saniye sonra çalsın
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+            let requestID = "\(goal.id.uuidString)-\(daysLeft)"
+            let request = UNNotificationRequest(identifier: requestID, content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+    
+    // Bildirim İptal Et
+    func cancelNotifications(for goal: Goal) {
+        let triggers = [10, 5, 3, 0, -1]
+        let ids = triggers.map { "\(goal.id.uuidString)-\($0)" }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+    }
+}
+
+// --- 2. PASTEL RENKLER ---
 extension Color {
     static let pastelBlue = Color(red: 0.68, green: 0.85, blue: 0.90)
     static let pastelPink = Color(red: 1.00, green: 0.82, blue: 0.86)
@@ -10,18 +68,15 @@ extension Color {
     static let pastelYellow = Color(red: 0.99, green: 0.93, blue: 0.70)
 }
 
-// --- 2. GÜÇLENDİRİLMİŞ BANKA VERİTABANI ---
+// --- 3. BANKA VERİTABANI ---
 struct FinancialApp: Identifiable, Hashable {
     let id = UUID()
-    let name: String
-    let schemes: [String]
-    let searchQuery: String
-    let directLink: String
+    let name: String; let schemes: [String]; let searchQuery: String; let directLink: String
 }
 
 let supportedApps: [FinancialApp] = [
     FinancialApp(name: "Seçilmedi", schemes: [], searchQuery: "", directLink: ""),
-    FinancialApp(name: "Garanti BBVA", schemes: ["garantibbva://", "garanti://", "com.garantibbva.mobile://"], searchQuery: "Garanti BBVA", directLink: "https://app.adjust.com/v4i62nv"),
+    FinancialApp(name: "Garanti BBVA", schemes: ["garantibbva://", "garanti://", "com.garantibbva.mobile://"], searchQuery: "Garanti BBVA", directLink: "https://apps.apple.com/tr/app/garanti-bbva-mobil/id521117624?l=tr"),
     FinancialApp(name: "Akbank", schemes: ["akbank://", "akbankdirekt://"], searchQuery: "Akbank", directLink: "https://apps.apple.com/tr/app/akbank-mobil/id560516360?l=tr"),
     FinancialApp(name: "İşCep (İş Bankası)", schemes: ["iscep://", "isbank://"], searchQuery: "İşCep", directLink: "https://apps.apple.com/tr/app/i-%C5%9Fcep-bankac%C4%B1l%C4%B1k-ve-finans/id308261752?l=tr"),
     FinancialApp(name: "Yapı Kredi", schemes: ["ykb://", "yapikredi://"], searchQuery: "Yapı Kredi", directLink: "https://apps.apple.com/tr/app/yap%C4%B1-kredi-mobil/id458627086?l=tr"),
@@ -34,14 +89,12 @@ let supportedApps: [FinancialApp] = [
     FinancialApp(name: "Binance", schemes: ["binance://"], searchQuery: "Binance", directLink: "https://apps.apple.com/tr/app/binance-bitcoin-kripto/id1436799971?l=tr"),
     FinancialApp(name: "Binance TR", schemes: ["binancetr://"], searchQuery: "Binance TR", directLink: "https://apps.apple.com/tr/app/binance-tr-bitcoin-ve-kripto/id1548636153?l=tr"),
     FinancialApp(name: "Midas", schemes: ["midas://"], searchQuery: "Midas", directLink: "https://apps.apple.com/tr/app/midas-borsa-hisse-al%C4%B1m-sat%C4%B1m/id1554268946?l=tr"),
-    FinancialApp(name: "BTCurk", schemes: ["btcurk://"], searchQuery: "BTCurk", directLink: "https://apps.apple.com/tr/app/btcturk-kripto-btc-usdt-xrp/id1471639720?l=tr"),
-    FinancialApp(name: "Paribu", schemes: ["paribu://"], searchQuery: "Paribu", directLink: "https://apps.apple.com/tr/app/paribu-bitcoin-kripto-para/id1448200352?l=tr")
+    FinancialApp(name: "Paribu", schemes: ["paribu://"], searchQuery: "Paribu", directLink: "https://apps.apple.com/tr/app/paribu-bitcoin-kripto-para/id1448200352?l=tr"),
+    FinancialApp(name: "BTCurk", schemes: ["btcurk://"], searchQuery: "BTCurk", directLink: "https://apps.apple.com/tr/app/btcturk-kripto-btc-usdt-xrp/id1471639720?l=tr")
 ]
 
-// --- RENK YARDIMCILARI ---
-struct ThemeColor: Identifiable {
-    let id = UUID(); let name: String; let color: Color; let accentColor: Color
-}
+// --- 4. RENK TEMALARI ---
+struct ThemeColor: Identifiable { let id = UUID(); let name: String; let color: Color; let accentColor: Color }
 let availableThemes: [ThemeColor] = [
     ThemeColor(name: "Beyaz", color: Color.white, accentColor: Color.blue),
     ThemeColor(name: "Mavi", color: Color.blue.opacity(0.3), accentColor: Color.blue),
@@ -53,64 +106,43 @@ let availableThemes: [ThemeColor] = [
 ]
 func getColorForTheme(_ name: String) -> ThemeColor { return availableThemes.first(where: { $0.name == name }) ?? availableThemes[0] }
 
-// --- 3. VERİ MODELİ ---
+// --- 5. VERİ MODELİ ---
 struct Goal: Identifiable, Codable, Equatable {
     var id = UUID()
-    var title: String
-    var icon: String
-    var currentAmount: Double
-    var targetAmount: Double
-    var link: String
-    var startDate: Date
-    var targetDate: Date
-    var colorTheme: String = "Beyaz"
-    var bankName: String = "Seçilmedi"
-    
+    var title: String; var icon: String; var currentAmount: Double; var targetAmount: Double
+    var link: String; var startDate: Date; var targetDate: Date
+    var colorTheme: String = "Beyaz"; var bankName: String = "Seçilmedi"
     var isCompleted: Bool { return currentAmount >= targetAmount }
 }
 
-// --- 4. ANA YAPI (TAB BAR) ---
+// --- 6. ANA YAPI (ContentView) ---
 struct ContentView: View {
     @AppStorage("goalsData", store: UserDefaults(suiteName: "group.com.melis.closer")) private var goalsData: Data = Data()
     @State private var goals: [Goal] = []
     
-    // Sekme rengi ayarı
-    init() {
-        UITabBar.appearance().backgroundColor = UIColor.systemGray6
-    }
+    init() { UITabBar.appearance().backgroundColor = UIColor.systemGray6 }
     
     var body: some View {
         TabView {
             HomeView(goals: $goals)
-                .tabItem {
-                    Image(systemName: "list.bullet.rectangle.portrait.fill")
-                    Text("Hedefler")
-                }
-            
+                .tabItem { Image(systemName: "list.bullet.rectangle.portrait.fill"); Text("Hedefler") }
             AnalyticsView(goals: $goals)
-                .tabItem {
-                    Image(systemName: "chart.pie.fill")
-                    Text("Analiz")
-                }
+                .tabItem { Image(systemName: "chart.pie.fill"); Text("Analiz") }
         }
-        .accentColor(.blue) // Seçili sekme rengi
+        .accentColor(.blue)
         .onAppear {
-            if let decodedGoals = try? JSONDecoder().decode([Goal].self, from: goalsData) {
-                goals = decodedGoals
-            }
+            NotificationManager.shared.requestAuthorization() // İzin İste
+            if let decodedGoals = try? JSONDecoder().decode([Goal].self, from: goalsData) { goals = decodedGoals }
         }
         .onChange(of: goals) { _, newValue in
-            if let encoded = try? JSONEncoder().encode(newValue) {
-                goalsData = encoded
-            }
+            if let encoded = try? JSONEncoder().encode(newValue) { goalsData = encoded }
         }
     }
 }
 
-// --- 5. ANALİZ SAYFASI (YENİ VE RENKLİ) ---
+// --- 7. ANALİZ SAYFASI (PASTEL) ---
 struct AnalyticsView: View {
     @Binding var goals: [Goal]
-    
     var totalSaved: Double { goals.reduce(0) { $0 + $1.currentAmount } }
     var totalTarget: Double { goals.reduce(0) { $0 + $1.targetAmount } }
     var progress: Double { totalTarget > 0 ? totalSaved / totalTarget : 0 }
@@ -119,63 +151,41 @@ struct AnalyticsView: View {
         NavigationView {
             ZStack {
                 Color(.systemGray6).ignoresSafeArea()
-                
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 25) {
-                        
-                        // 1. ÜST KART: GENEL DURUM
+                        // Üst Kart
                         ZStack {
                             RoundedRectangle(cornerRadius: 25)
                                 .fill(LinearGradient(gradient: Gradient(colors: [Color.pastelBlue, Color.pastelPurple]), startPoint: .topLeading, endPoint: .bottomTrailing))
                                 .shadow(color: Color.pastelPurple.opacity(0.4), radius: 10, x: 0, y: 5)
-                            
                             HStack(spacing: 20) {
-                                // Halka Grafik
                                 ZStack {
                                     Circle().stroke(Color.white.opacity(0.3), lineWidth: 15)
-                                    Circle()
-                                        .trim(from: 0.0, to: CGFloat(min(self.progress, 1.0)))
+                                    Circle().trim(from: 0.0, to: CGFloat(min(self.progress, 1.0)))
                                         .stroke(Color.white, style: StrokeStyle(lineWidth: 15, lineCap: .round, lineJoin: .round))
-                                        .rotationEffect(Angle(degrees: 270.0))
-                                        .animation(.spring(), value: progress)
-                                    
-                                    Text("%\(Int(progress * 100))")
-                                        .font(.title).bold().foregroundColor(.white)
-                                }
-                                .frame(width: 100, height: 100)
-                                
+                                        .rotationEffect(Angle(degrees: 270.0)).animation(.spring(), value: progress)
+                                    Text("%\(Int(progress * 100))").font(.title).bold().foregroundColor(.white)
+                                }.frame(width: 100, height: 100)
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text("Genel Durum").font(.headline).foregroundColor(.white.opacity(0.8))
-                                    Text("\(totalSaved.formattedWithDot()) ₺")
-                                        .font(.system(size: 28, weight: .bold))
-                                        .foregroundColor(.white)
-                                    Text("Hedef: \(totalTarget.formattedWithDot()) ₺")
-                                        .font(.subheadline)
-                                        .foregroundColor(.white.opacity(0.9))
+                                    Text("\(totalSaved.formattedWithDot()) ₺").font(.system(size: 28, weight: .bold)).foregroundColor(.white)
+                                    Text("Hedef: \(totalTarget.formattedWithDot()) ₺").font(.subheadline).foregroundColor(.white.opacity(0.9))
                                 }
                                 Spacer()
-                            }
-                            .padding(25)
-                        }
-                        .frame(height: 180)
-                        .padding(.horizontal)
+                            }.padding(25)
+                        }.frame(height: 180).padding(.horizontal)
                         
-                        // 2. KAYDIRILABİLİR HEDEF KARTLARI
+                        // Hedef Kartları
                         VStack(alignment: .leading) {
                             Text("Hedef Detayları").font(.title3).bold().padding(.horizontal)
-                            
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
-                                    ForEach(goals) { goal in
-                                        GoalAnalyticsCard(goal: goal)
-                                    }
-                                }
-                                .padding(.horizontal)
-                                .padding(.bottom, 20)
+                                    ForEach(goals) { goal in GoalAnalyticsCard(goal: goal) }
+                                }.padding(.horizontal).padding(.bottom, 20)
                             }
                         }
                         
-                        // 3. MOTİVASYON KARTI
+                        // Motivasyon
                         HStack {
                             Image(systemName: "star.fill").foregroundColor(.orange).font(.largeTitle)
                             VStack(alignment: .leading) {
@@ -183,78 +193,41 @@ struct AnalyticsView: View {
                                 Text("Toplam \(goals.filter{$0.isCompleted}.count) hedef tamamladın.").font(.caption).foregroundColor(.gray)
                             }
                             Spacer()
-                        }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(20)
-                        .padding(.horizontal)
-                        .shadow(color: Color.gray.opacity(0.1), radius: 5, x: 0, y: 2)
-                        
+                        }.padding().background(Color.white).cornerRadius(20).padding(.horizontal).shadow(color: Color.gray.opacity(0.1), radius: 5, x: 0, y: 2)
                         Spacer(minLength: 50)
-                    }
-                    .padding(.top)
+                    }.padding(.top)
                 }
-            }
-            .navigationTitle("Analizler")
+            }.navigationTitle("Analizler")
         }
     }
 }
 
-// Analiz Sayfası İçin Özel Kart
 struct GoalAnalyticsCard: View {
     let goal: Goal
     var progress: Double { goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0 }
-    
-    // Rastgele pastel renk seçimi için basit bir mantık
     var cardColor: Color {
         let colors: [Color] = [.pastelPink, .pastelGreen, .pastelOrange, .pastelYellow, .pastelBlue]
-        // İsmin uzunluğuna göre renk seçelim ki her seferinde değişmesin
-        let index = goal.title.count % colors.count
-        return colors[index]
+        return colors[goal.title.count % colors.count]
     }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            HStack {
-                Text(goal.icon).font(.largeTitle)
-                Spacer()
-                if goal.isCompleted {
-                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                }
-            }
-            
-            Text(goal.title)
-                .font(.headline)
-                .lineLimit(1)
-                .foregroundColor(.black.opacity(0.7))
-            
+            HStack { Text(goal.icon).font(.largeTitle); Spacer(); if goal.isCompleted { Image(systemName: "checkmark.circle.fill").foregroundColor(.green) } }
+            Text(goal.title).font(.headline).lineLimit(1).foregroundColor(.black.opacity(0.7))
             VStack(alignment: .leading, spacing: 5) {
                 Text("\(goal.currentAmount.formattedWithDot()) ₺").font(.title3).bold().foregroundColor(.black)
-                
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         Capsule().frame(width: geometry.size.width, height: 8).opacity(0.2).foregroundColor(.black)
-                        Capsule().frame(width: min(CGFloat(self.progress) * geometry.size.width, geometry.size.width), height: 8)
-                            .foregroundColor(.black.opacity(0.6))
+                        Capsule().frame(width: min(CGFloat(self.progress) * geometry.size.width, geometry.size.width), height: 8).foregroundColor(.black.opacity(0.6))
                     }
                 }.frame(height: 8)
-                
-                HStack {
-                    Text("%\(Int(progress * 100))").font(.caption).bold()
-                    Spacer()
-                    Text(goal.bankName).font(.caption2).padding(4).background(Color.white.opacity(0.5)).cornerRadius(4)
-                }.foregroundColor(.black.opacity(0.6))
+                HStack { Text("%\(Int(progress * 100))").font(.caption).bold(); Spacer(); Text(goal.bankName).font(.caption2).padding(4).background(Color.white.opacity(0.5)).cornerRadius(4) }.foregroundColor(.black.opacity(0.6))
             }
-        }
-        .padding()
-        .frame(width: 180, height: 200)
-        .background(cardColor)
-        .cornerRadius(20)
-        .shadow(color: cardColor.opacity(0.5), radius: 8, x: 0, y: 5)
+        }.padding().frame(width: 180, height: 200).background(cardColor).cornerRadius(20).shadow(color: cardColor.opacity(0.5), radius: 8, x: 0, y: 5)
     }
 }
 
-// --- 6. ESKİ LİSTE GÖRÜNÜMÜ (HOMEVIEW OLARAK AYARLANDI) ---
+// --- 8. ANA EKRAN (LİSTE) ---
 struct HomeView: View {
     @Binding var goals: [Goal]
     @State private var showingAddGoalSheet = false
@@ -270,9 +243,7 @@ struct HomeView: View {
                         Text("🎯").font(.system(size: 80))
                         Text("Henüz hedefin yok!").font(.title2).bold()
                         Text("İlk hedefini ekle ve\nhangi bankada biriktirdiğini seç.").multilineTextAlignment(.center).foregroundColor(.gray)
-                        Button(action: { showingAddGoalSheet = true }) {
-                            Text("Yeni Hedef Ekle").bold().foregroundColor(.white).padding().background(Color.blue).cornerRadius(12)
-                        }.padding(.top, 10)
+                        Button(action: { showingAddGoalSheet = true }) { Text("Yeni Hedef Ekle").bold().foregroundColor(.white).padding().background(Color.blue).cornerRadius(12) }.padding(.top, 10)
                     }
                 } else {
                     List {
@@ -281,12 +252,13 @@ struct HomeView: View {
                                 if !goal.isCompleted {
                                     ZStack {
                                         GoalCard(goal: $goal, impactMed: impactMed)
-                                        NavigationLink(destination: GoalDetailView(goal: $goal, onDelete: { goals.removeAll { $0.id == goal.id } })) { EmptyView() }.opacity(0)
-                                    }
-                                    .listRowSeparator(.hidden).listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+                                        NavigationLink(destination: GoalDetailView(goal: $goal, onDelete: {
+                                            NotificationManager.shared.cancelNotifications(for: goal)
+                                            goals.removeAll { $0.id == goal.id }
+                                        })) { EmptyView() }.opacity(0)
+                                    }.listRowSeparator(.hidden).listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
                                 }
-                            }
-                            .onMove(perform: move)
+                            }.onMove(perform: move)
                         }
                         if goals.contains(where: { $0.isCompleted }) {
                             Section(header: Text("🎉 Tamamlananlar").font(.headline).foregroundColor(.green)) {
@@ -294,16 +266,16 @@ struct HomeView: View {
                                     if goal.isCompleted {
                                         ZStack {
                                             GoalCard(goal: $goal, impactMed: impactMed)
-                                            NavigationLink(destination: GoalDetailView(goal: $goal, onDelete: { goals.removeAll { $0.id == goal.id } })) { EmptyView() }.opacity(0)
-                                        }
-                                        .listRowSeparator(.hidden).listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+                                            NavigationLink(destination: GoalDetailView(goal: $goal, onDelete: {
+                                                NotificationManager.shared.cancelNotifications(for: goal)
+                                                goals.removeAll { $0.id == goal.id }
+                                            })) { EmptyView() }.opacity(0)
+                                        }.listRowSeparator(.hidden).listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
                                     }
                                 }
                             }
                         }
-                    }
-                    .listStyle(PlainListStyle())
-                    .environment(\.editMode, $editMode)
+                    }.listStyle(PlainListStyle()).environment(\.editMode, $editMode)
                 }
             }
             .navigationTitle("Closer")
@@ -317,18 +289,12 @@ struct HomeView: View {
     func move(from source: IndexSet, to destination: Int) { goals.move(fromOffsets: source, toOffset: destination) }
 }
 
-// --- 7. DİĞER EKRANLAR VE YARDIMCILAR (AYNI KALDI) ---
-
-// (GoalDetailView, EditGoalView, AddGoalView, GoalCard kodları tamamen aynı şekilde aşağıya eklenmelidir.
-// Kodun bütünlüğü bozulmasın diye buraya hepsini ekliyorum.)
-
+// --- 9. DETAY VE DÜZENLEME ---
 struct GoalDetailView: View {
-    @Binding var goal: Goal
-    var onDelete: () -> Void
+    @Binding var goal: Goal; var onDelete: () -> Void
     @State private var customAmount: String = ""
     @State private var showingEditSheet = false
     @Environment(\.presentationMode) var presentationMode
-    
     var appData: FinancialApp? { supportedApps.first(where: { $0.name == goal.bankName }) }
     
     var body: some View {
@@ -339,10 +305,7 @@ struct GoalDetailView: View {
                     VStack(spacing: 10) {
                         Text(goal.icon).font(.system(size: 80))
                         Text(goal.title).font(.largeTitle).bold().multilineTextAlignment(.center)
-                        if goal.isCompleted {
-                            HStack { Image(systemName: "checkmark.seal.fill"); Text("HEDEF TAMAMLANDI") }
-                                .font(.headline).foregroundColor(.green).padding(.horizontal, 20).padding(.vertical, 10).background(Color.green.opacity(0.15)).cornerRadius(20).padding(.top, 5)
-                        }
+                        if goal.isCompleted { HStack { Image(systemName: "checkmark.seal.fill"); Text("HEDEF TAMAMLANDI") }.font(.headline).foregroundColor(.green).padding(10).background(Color.green.opacity(0.15)).cornerRadius(20) }
                     }
                     if let app = appData, !app.name.isEmpty, app.name != "Seçilmedi" {
                         if !app.directLink.isEmpty, let url = URL(string: app.directLink) {
@@ -352,24 +315,24 @@ struct GoalDetailView: View {
                         }
                     }
                     HStack {
-                        VStack(alignment: .leading, spacing: 5) { Text("Başlangıç").font(.caption).foregroundColor(.gray); Text(goal.startDate.toTurkishDate()).font(.subheadline).bold() }
+                        VStack(alignment: .leading) { Text("Başlangıç").font(.caption).foregroundColor(.gray); Text(goal.startDate.toTurkishDate()).font(.subheadline).bold() }
                         Spacer()
-                        if !goal.isCompleted { VStack(spacing: 5) { Text("KALAN SÜRE").font(.caption).foregroundColor(.gray); Text("\(daysRemaining()) Gün").font(.title3).bold().foregroundColor(.blue) }; Spacer() }
-                        VStack(alignment: .trailing, spacing: 5) { Text("Hedef Tarih").font(.caption).foregroundColor(.gray); Text(goal.targetDate.toTurkishDate()).font(.subheadline).bold() }
+                        if !goal.isCompleted { VStack { Text("KALAN SÜRE").font(.caption).foregroundColor(.gray); Text("\(daysRemaining()) Gün").font(.title3).bold().foregroundColor(.blue) }; Spacer() }
+                        VStack(alignment: .trailing) { Text("Hedef Tarih").font(.caption).foregroundColor(.gray); Text(goal.targetDate.toTurkishDate()).font(.subheadline).bold() }
                     }.padding().background(Color.white).cornerRadius(15)
-                    VStack(spacing: 10) {
+                    VStack {
                         Text("Mevcut Birikim").font(.subheadline).foregroundColor(.gray)
                         Text("\(goal.currentAmount.formattedWithDot()) ₺").font(.system(size: 40, weight: .heavy)).contentTransition(.numericText())
-                        ProgressView(value: min(goal.currentAmount / goal.targetAmount, 1.0)).progressViewStyle(LinearProgressViewStyle(tint: .blue)).scaleEffect(x: 1, y: 2, anchor: .center).padding(.top, 10)
+                        ProgressView(value: min(goal.currentAmount / goal.targetAmount, 1.0)).padding(.top, 10)
                         Text("Hedef: \(goal.targetAmount.formattedWithDot()) ₺").font(.caption).foregroundColor(.gray)
                     }.padding().background(Color.white).cornerRadius(20)
                     if !goal.link.isEmpty, let url = URL(string: goal.link) { Link(destination: url) { HStack { Image(systemName: "safari"); Text("İlana / Ürüne Git") }.font(.headline).foregroundColor(.white).frame(maxWidth: .infinity).padding().background(Color.black).cornerRadius(15) } }
                     if !goal.isCompleted {
-                        VStack(alignment: .leading, spacing: 15) {
+                        VStack(alignment: .leading) {
                             Text("Özel İşlem").font(.headline)
                             TextField("Miktar Girin (₺)", text: $customAmount).keyboardType(.numberPad).padding().background(Color(.systemGray5)).cornerRadius(10)
                                 .onChange(of: customAmount) { _, newValue in customAmount = FormatHelper.formatInput(newValue) }
-                            HStack(spacing: 15) {
+                            HStack {
                                 Button(action: { updateAmount(isAdding: false) }) { Text("- Çıkar").bold().frame(maxWidth: .infinity).padding().background(Color.red.opacity(0.1)).foregroundColor(.red).cornerRadius(10) }
                                 Button(action: { updateAmount(isAdding: true) }) { Text("+ Ekle").bold().frame(maxWidth: .infinity).padding().background(Color.green.opacity(0.1)).foregroundColor(.green).cornerRadius(10) }
                             }
@@ -385,96 +348,100 @@ struct GoalDetailView: View {
     func tryOpenBankApp(app: FinancialApp) {
         var opened = false
         for scheme in app.schemes { if let url = URL(string: scheme), UIApplication.shared.canOpenURL(url) { UIApplication.shared.open(url); opened = true; break } }
-        if !opened { let encodedQuery = app.searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""; let searchURLString = "itms-apps://search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?term=\(encodedQuery)"; if let searchURL = URL(string: searchURLString) { UIApplication.shared.open(searchURL) } }
+        if !opened { let query = app.searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""; if let url = URL(string: "itms-apps://search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?term=\(query)") { UIApplication.shared.open(url) } }
     }
     func updateAmount(isAdding: Bool) {
-        let cleanAmount = Double(customAmount.replacingOccurrences(of: ".", with: "")) ?? 0
-        if cleanAmount > 0 { withAnimation(.spring()) { if isAdding { goal.currentAmount = min(goal.targetAmount, goal.currentAmount + cleanAmount) } else { goal.currentAmount = max(0, goal.currentAmount - cleanAmount) } }; customAmount = "" }
+        let clean = Double(customAmount.replacingOccurrences(of: ".", with: "")) ?? 0
+        if clean > 0 { withAnimation(.spring()) { if isAdding { goal.currentAmount = min(goal.targetAmount, goal.currentAmount + clean) } else { goal.currentAmount = max(0, goal.currentAmount - clean) } }; customAmount = "" }
     }
-    func daysRemaining() -> Int { let calendar = Calendar.current; let components = calendar.dateComponents([.day], from: Date(), to: goal.targetDate); return max(0, components.day ?? 0) }
+    func daysRemaining() -> Int { return max(0, Calendar.current.dateComponents([.day], from: Date(), to: goal.targetDate).day ?? 0) }
 }
 
-struct EditGoalView: View {
-    @Binding var goal: Goal
-    @Binding var isShowing: Bool
-    var onDelete: () -> Void
-    @State private var title = ""; @State private var icon = ""; @State private var currentAmount = ""; @State private var targetAmount = ""; @State private var link = ""; @State private var startDate = Date(); @State private var targetDate = Date(); @State private var themeName = "Beyaz"
-    @State private var selectedBank = "Seçilmedi"
+struct AddGoalView: View {
+    @Binding var goals: [Goal]; @Binding var isShowing: Bool
+    @State private var title = ""; @State private var icon = "🎯"; @State private var targetAmount = ""; @State private var link = ""
+    @State private var startDate = Date(); @State private var targetDate = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
+    @State private var themeName = "Beyaz"; @State private var selectedBank = "Seçilmedi"
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Hedef Bilgileri")) {
-                    TextField("Hedefin Adı", text: $title)
-                    TextField("Simge (Emoji)", text: $icon)
-                    VStack(alignment: .leading) { Text("Mevcut Birikim (₺)").font(.caption).foregroundColor(.gray); TextField("0", text: $currentAmount).keyboardType(.numberPad).onChange(of: currentAmount) { _, newValue in currentAmount = FormatHelper.formatInput(newValue) } }
-                    VStack(alignment: .leading) { Text("Hedef Miktar (₺)").font(.caption).foregroundColor(.gray); TextField("0", text: $targetAmount).keyboardType(.numberPad).onChange(of: targetAmount) { _, newValue in targetAmount = FormatHelper.formatInput(newValue) } }
-                }
-                Section(header: Text("Para Nerede Birikiyor?")) {
-                    Picker("Banka / Platform", selection: $selectedBank) { ForEach(supportedApps, id: \.self) { app in Text(app.name).tag(app.name) } }.pickerStyle(MenuPickerStyle())
-                }
-                Section(header: Text("Renk Teması")) { ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 15) { ForEach(availableThemes) { theme in Circle().fill(theme.color).frame(width: 40, height: 40).overlay(Circle().stroke(themeName == theme.name ? Color.gray : Color.gray.opacity(0.3), lineWidth: themeName == theme.name ? 3 : 1)).onTapGesture { withAnimation { themeName = theme.name } } } }.padding(.vertical, 5) } }
-                Section(header: Text("Zaman Planı")) { DatePicker("Başlangıç", selection: $startDate, displayedComponents: .date); DatePicker("Bitiş", selection: $targetDate, in: startDate..., displayedComponents: .date) }
-                Section(header: Text("İlham & Bağlantı")) { TextField("https://...", text: $link).keyboardType(.URL).autocapitalization(.none) }
-                Section { Button(role: .destructive, action: { isShowing = false; onDelete() }) { HStack { Spacer(); Text("Hedefi Sil").bold(); Spacer() } } }
+                Section(header: Text("Hedef Bilgileri")) { TextField("Hedefin Adı", text: $title); TextField("Simge", text: $icon); TextField("Hedef Miktar", text: $targetAmount).keyboardType(.numberPad).onChange(of: targetAmount) { _, v in targetAmount = FormatHelper.formatInput(v) } }
+                Section(header: Text("Para Nerede?")) { Picker("Banka", selection: $selectedBank) { ForEach(supportedApps, id: \.self) { app in Text(app.name).tag(app.name) } } }
+                Section(header: Text("Renk")) { ScrollView(.horizontal, showsIndicators: false) { HStack { ForEach(availableThemes) { theme in Circle().fill(theme.color).frame(width: 40, height: 40).overlay(Circle().stroke(themeName == theme.name ? Color.gray : Color.clear, lineWidth: 3)).onTapGesture { themeName = theme.name } } } } }
+                Section(header: Text("Zaman")) { DatePicker("Başlangıç", selection: $startDate, displayedComponents: .date); DatePicker("Bitiş", selection: $targetDate, in: startDate..., displayedComponents: .date) }
+                Section(header: Text("Link")) { TextField("https://...", text: $link).keyboardType(.URL) }
             }
-            .navigationTitle("Düzenle").navigationBarTitleDisplayMode(.inline).environment(\.locale, Locale(identifier: "tr_TR"))
-            .toolbar {
+            .navigationTitle("Yeni Hedef").toolbar {
                 ToolbarItem(placement: .navigationBarLeading) { Button("İptal") { isShowing = false } }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Kaydet") { let cleanTarget = Double(targetAmount.replacingOccurrences(of: ".", with: "")) ?? 0; let cleanCurrent = Double(currentAmount.replacingOccurrences(of: ".", with: "")) ?? 0; if cleanTarget > 0 && !title.isEmpty { goal.title = title; goal.icon = icon; goal.currentAmount = cleanCurrent; goal.targetAmount = cleanTarget; goal.link = link; goal.startDate = startDate; goal.targetDate = targetDate; goal.colorTheme = themeName; goal.bankName = selectedBank; isShowing = false } }.bold() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Kaydet") {
+                        let cleanTarget = Double(targetAmount.replacingOccurrences(of: ".", with: "")) ?? 0
+                        if cleanTarget > 0 && !title.isEmpty {
+                            let newGoal = Goal(title: title, icon: icon, currentAmount: 0, targetAmount: cleanTarget, link: link, startDate: startDate, targetDate: targetDate, colorTheme: themeName, bankName: selectedBank)
+                            goals.append(newGoal)
+                            NotificationManager.shared.scheduleNotifications(for: newGoal) // Bildirim Kur
+                            isShowing = false
+                        }
+                    }.bold()
+                }
             }
-            .onAppear { title = goal.title; icon = goal.icon; currentAmount = goal.currentAmount.formattedWithDot(); targetAmount = goal.targetAmount.formattedWithDot(); link = goal.link; startDate = goal.startDate; targetDate = goal.targetDate; themeName = goal.colorTheme; selectedBank = goal.bankName }
         }
     }
 }
 
-struct AddGoalView: View {
-    @Binding var goals: [Goal]
-    @Binding var isShowing: Bool
-    @State private var title = ""; @State private var icon = "🎯"; @State private var targetAmount = ""; @State private var link = ""; @State private var startDate = Date(); @State private var targetDate = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date(); @State private var themeName = "Beyaz"
-    @State private var selectedBank = "Seçilmedi"
+struct EditGoalView: View {
+    @Binding var goal: Goal; @Binding var isShowing: Bool; var onDelete: () -> Void
+    @State private var title = ""; @State private var icon = ""; @State private var currentAmount = ""; @State private var targetAmount = ""; @State private var link = ""
+    @State private var startDate = Date(); @State private var targetDate = Date(); @State private var themeName = "Beyaz"; @State private var selectedBank = "Seçilmedi"
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Hedef Bilgileri")) { TextField("Hedefin Adı", text: $title); TextField("Simge (Emoji)", text: $icon); TextField("Hedef Miktar (₺)", text: $targetAmount).keyboardType(.numberPad).onChange(of: targetAmount) { _, newValue in targetAmount = FormatHelper.formatInput(newValue) } }
-                Section(header: Text("Para Nerede Birikecek?")) { Picker("Banka / Platform", selection: $selectedBank) { ForEach(supportedApps, id: \.self) { app in Text(app.name).tag(app.name) } }.pickerStyle(MenuPickerStyle()) }
-                Section(header: Text("Renk Teması")) { ScrollView(.horizontal, showsIndicators: false) { HStack(spacing: 15) { ForEach(availableThemes) { theme in Circle().fill(theme.color).frame(width: 40, height: 40).overlay(Circle().stroke(themeName == theme.name ? Color.gray : Color.gray.opacity(0.3), lineWidth: themeName == theme.name ? 3 : 1)).onTapGesture { withAnimation { themeName = theme.name } } } }.padding(.vertical, 5) } }
-                Section(header: Text("Zaman Planı")) { DatePicker("Başlangıç", selection: $startDate, displayedComponents: .date); DatePicker("Bitiş", selection: $targetDate, in: startDate..., displayedComponents: .date) }
-                Section(header: Text("İlham & Bağlantı")) { TextField("https://...", text: $link).keyboardType(.URL).autocapitalization(.none) }
+                Section { TextField("Ad", text: $title); TextField("Simge", text: $icon); TextField("Mevcut", text: $currentAmount).keyboardType(.numberPad).onChange(of: currentAmount) { _, v in currentAmount = FormatHelper.formatInput(v) }; TextField("Hedef", text: $targetAmount).keyboardType(.numberPad).onChange(of: targetAmount) { _, v in targetAmount = FormatHelper.formatInput(v) } }
+                Section { Picker("Banka", selection: $selectedBank) { ForEach(supportedApps, id: \.self) { app in Text(app.name).tag(app.name) } } }
+                Section { ScrollView(.horizontal) { HStack { ForEach(availableThemes) { theme in Circle().fill(theme.color).frame(width: 40).overlay(Circle().stroke(themeName == theme.name ? Color.gray : Color.clear, lineWidth: 3)).onTapGesture { themeName = theme.name } } } } }
+                Section { DatePicker("Başlangıç", selection: $startDate, displayedComponents: .date); DatePicker("Bitiş", selection: $targetDate, in: startDate..., displayedComponents: .date) }
+                Section { TextField("Link", text: $link) }
+                Section { Button(role: .destructive, action: { isShowing = false; onDelete() }) { Text("Hedefi Sil").bold() } }
             }
-            .navigationTitle("Yeni Hedef").navigationBarTitleDisplayMode(.inline).environment(\.locale, Locale(identifier: "tr_TR"))
-            .toolbar {
+            .navigationTitle("Düzenle").toolbar {
                 ToolbarItem(placement: .navigationBarLeading) { Button("İptal") { isShowing = false } }
-                ToolbarItem(placement: .navigationBarTrailing) { Button("Kaydet") { let cleanTarget = Double(targetAmount.replacingOccurrences(of: ".", with: "")) ?? 0; if cleanTarget > 0 && !title.isEmpty { goals.append(Goal(title: title, icon: icon, currentAmount: 0, targetAmount: cleanTarget, link: link, startDate: startDate, targetDate: targetDate, colorTheme: themeName, bankName: selectedBank)); isShowing = false } }.bold() }
-            }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Kaydet") {
+                        let cT = Double(targetAmount.replacingOccurrences(of: ".", with: "")) ?? 0; let cC = Double(currentAmount.replacingOccurrences(of: ".", with: "")) ?? 0
+                        if cT > 0 && !title.isEmpty {
+                            goal.title = title; goal.icon = icon; goal.currentAmount = cC; goal.targetAmount = cT; goal.link = link; goal.startDate = startDate; goal.targetDate = targetDate; goal.colorTheme = themeName; goal.bankName = selectedBank
+                            NotificationManager.shared.scheduleNotifications(for: goal) // Bildirim Güncelle
+                            isShowing = false
+                        }
+                    }.bold()
+                }
+            }.onAppear { title = goal.title; icon = goal.icon; currentAmount = goal.currentAmount.formattedWithDot(); targetAmount = goal.targetAmount.formattedWithDot(); link = goal.link; startDate = goal.startDate; targetDate = goal.targetDate; themeName = goal.colorTheme; selectedBank = goal.bankName }
         }
     }
 }
 
 struct GoalCard: View {
-    @Binding var goal: Goal
-    let impactMed: UIImpactFeedbackGenerator
+    @Binding var goal: Goal; let impactMed: UIImpactFeedbackGenerator
     var theme: ThemeColor { getColorForTheme(goal.colorTheme) }
-    var remainingAmount: Double { return goal.targetAmount - goal.currentAmount }
-    
+    var remaining: Double { goal.targetAmount - goal.currentAmount }
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
             HStack { Text(goal.icon).font(.largeTitle); Text(goal.title).font(.title3).bold(); Spacer() }
-            HStack { Text("\(goal.currentAmount.formattedWithDot()) ₺").font(.title2).fontWeight(.bold).contentTransition(.numericText()); Spacer(); Text("Hedef: \(goal.targetAmount.formattedWithDot()) ₺").font(.subheadline).foregroundColor(.black.opacity(0.6)) }
-            ProgressView(value: min(goal.currentAmount / goal.targetAmount, 1.0)).progressViewStyle(LinearProgressViewStyle(tint: theme.accentColor)).scaleEffect(x: 1, y: 2, anchor: .center)
-            if remainingAmount > 0 {
-                Button(action: { impactMed.impactOccurred(); withAnimation(.spring()) { if remainingAmount <= 500 { goal.currentAmount = goal.targetAmount } else { goal.currentAmount += 500 } } }) {
-                    ZStack { RoundedRectangle(cornerRadius: 12).fill(theme.accentColor.opacity(0.3)).offset(y: 4); RoundedRectangle(cornerRadius: 12).fill(Color.white); Text(remainingAmount <= 500 ? "Hedefi Tamamla 🚀" : "+500₺ Ekle").font(.subheadline).bold().foregroundColor(theme.name == "Beyaz" ? .blue : theme.accentColor) }.frame(height: 44).frame(maxWidth: .infinity)
-                }.buttonStyle(BorderlessButtonStyle()).padding(.bottom, 4)
-            } else { HStack { Spacer(); Image(systemName: "checkmark.seal.fill"); Text("Tamamlandı!").bold(); Spacer() }.font(.subheadline).foregroundColor(.green).padding(10).background(Color.green.opacity(0.1)).cornerRadius(10) }
+            HStack { Text("\(goal.currentAmount.formattedWithDot()) ₺").font(.title2).bold().contentTransition(.numericText()); Spacer(); Text("Hedef: \(goal.targetAmount.formattedWithDot()) ₺").font(.subheadline).opacity(0.6) }
+            ProgressView(value: min(goal.currentAmount / goal.targetAmount, 1.0)).tint(theme.accentColor).scaleEffect(x: 1, y: 2)
+            if remaining > 0 {
+                Button(action: { impactMed.impactOccurred(); withAnimation(.spring()) { if remaining <= 500 { goal.currentAmount = goal.targetAmount } else { goal.currentAmount += 500 } } }) {
+                    ZStack { RoundedRectangle(cornerRadius: 12).fill(theme.accentColor.opacity(0.3)).offset(y: 4); RoundedRectangle(cornerRadius: 12).fill(Color.white); Text(remaining <= 500 ? "Hedefi Tamamla 🚀" : "+500₺ Ekle").bold().foregroundColor(theme.name == "Beyaz" ? .blue : theme.accentColor) }.frame(height: 44)
+                }.buttonStyle(BorderlessButtonStyle())
+            } else { HStack { Spacer(); Image(systemName: "checkmark.seal.fill"); Text("Tamamlandı!").bold(); Spacer() }.foregroundColor(.green).padding(10).background(Color.green.opacity(0.1)).cornerRadius(10) }
         }.padding().background(theme.color).cornerRadius(15).shadow(color: theme.accentColor.opacity(0.1), radius: 5, x: 0, y: 2).foregroundColor(.black)
     }
 }
 
-struct FormatHelper { static func formatInput(_ text: String) -> String { let filtered = text.filter { "0123456789".contains($0) }; if let number = Int(filtered) { let formatter = NumberFormatter(); formatter.numberStyle = .decimal; formatter.groupingSeparator = "."; return formatter.string(from: NSNumber(value: number)) ?? "" }; return "" } }
-extension Double { func formattedWithDot() -> String { let formatter = NumberFormatter(); formatter.numberStyle = .decimal; formatter.groupingSeparator = "."; formatter.maximumFractionDigits = 0; return formatter.string(from: NSNumber(value: self)) ?? "0" } }
-extension Date { func toTurkishDate() -> String { let formatter = DateFormatter(); formatter.locale = Locale(identifier: "tr_TR"); formatter.dateFormat = "d MMM yyyy"; return formatter.string(from: self) } }
+struct FormatHelper { static func formatInput(_ t: String) -> String { let f = t.filter { "0123456789".contains($0) }; if let n = Int(f) { let fm = NumberFormatter(); fm.numberStyle = .decimal; fm.groupingSeparator = "."; return fm.string(from: NSNumber(value: n)) ?? "" }; return "" } }
+extension Double { func formattedWithDot() -> String { let f = NumberFormatter(); f.numberStyle = .decimal; f.groupingSeparator = "."; f.maximumFractionDigits = 0; return f.string(from: NSNumber(value: self)) ?? "0" } }
+extension Date { func toTurkishDate() -> String { let f = DateFormatter(); f.locale = Locale(identifier: "tr_TR"); f.dateFormat = "d MMM yyyy"; return f.string(from: self) } }
 struct BorderlessButtonStyle: ButtonStyle { func makeBody(configuration: Configuration) -> some View { configuration.label } }
-
 #Preview { ContentView() }
