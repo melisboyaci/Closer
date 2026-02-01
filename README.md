@@ -1,39 +1,36 @@
 # Closer 🎯
 
-**Closer**, finansal hedeflerinizi takip etmenizi sağlayan ve Türkiye'deki bankacılık/borsa uygulamalarıyla **doğrudan entegre** çalışan akıllı bir iOS asistanıdır.
+**Closer** is a smart iOS assistant designed to help you track your financial goals, featuring **direct integration** with major banking and stock exchange applications in Turkey.
 
-SwiftUI ile geliştirilen bu uygulama, kullanıcı dostu pastel arayüzü ve "Smart Deep Link" teknolojisi ile finansal uygulamalar arasında köprü kurar.
+Built with **SwiftUI**, this application bridges the gap between your goals and financial apps using a user-friendly pastel interface and "Smart Deep Link" technology.
 
-## ✨ Özellikler
+## ✨ Features
 
-* **🎯 Hedef Takibi:** İstediğiniz her şey için (Araba, Tatil, Telefon) ayrı hedef kartları oluşturun.
-* **🔗 Akıllı Banka Entegrasyonu:**
-    * Garanti BBVA, Akbank, İşCep, Binance, Midas ve daha fazlası...
-    * Uygulama yüklüyse **direkt açar**.
-    * Yüklü değilse **App Store sayfasına** yönlendirir (Bölge hatası vermez).
-* **📊 Pastel Analiz Paneli:** Toplam birikim durumunuzu ve ilerlemenizi şık grafiklerle izleyin.
-* **🎨 Kişiselleştirme:** Her hedef için farklı renk temaları ve ikonlar seçin.
-* **📱 Modern UI:** SwiftUI ile yazılmış, akıcı ve Apple tasarım diline uygun arayüz.
+* **🎯 Goal Tracking:** Create individual goal cards for anything you desire (e.g., Car, Vacation, Phone).
+* **🔗 Smart Banking Integration:**
+    * Supports Garanti BBVA, Akbank, İşCep, Binance, Midas, and more...
+    * **Directly opens** the app if installed.
+    * **Smart Redirect** to the App Store if not installed (Handles region errors gracefully).
+* **📊 Pastel Analytics Dashboard:** Monitor your total savings and progress through stylish, visualized charts.
+* **🎨 Personalization:** Select unique color themes and icons for every goal.
+* **📱 Modern UI:** A fluid, native iOS interface built with SwiftUI, adhering to Apple's Human Interface Guidelines.
 
-## 🚀 Teknolojiler
+## 🚀 Tech Stack
 
-* **Dil:** Swift 5
+* **Language:** Swift 5
 * **Framework:** SwiftUI
-* **Depolama:** @AppStorage / UserDefaults
-* **Mimari:** MVVM (Model-View-ViewModel) yapısına uygun veri akışı.
-* **Diğer:** Universal Links, URL Schemes, Custom URL Handling.
+* **Storage:** @AppStorage / UserDefaults
+* **Architecture:** MVVM (Model-View-ViewModel) pattern.
+* **Core Features:** Universal Links, URL Schemes, Custom URL Handling, WidgetKit.
 
+## 📸 Screenshots
 
+<img src="https://github.com/user-attachments/assets/35980a6f-cb84-4e63-bfb0-02251a41c416" width="300" alt="Closer App Screenshot" />
 
-## 📸 Ekran Görüntüleri
-
-*(Buraya uygulamanın ekran görüntülerini ekleyebilirsiniz)*
-
-/Users/melisboyaci/Desktop/Simulator Screenshot - iPhone 17 Pro Max - 2026-01-29 at 17.27.15.png
-## 👩‍💻 Geliştirici
+## 👩‍💻 Developer
 
 **Melis Boyacı**
 * iOS Developer
 
 ---
-*Bu proje kişisel gelişim ve portföy amacıyla geliştirilmiştir.*
+*This project was developed for personal development and portfolio purposes.*
